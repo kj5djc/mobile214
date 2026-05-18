@@ -23,6 +23,17 @@ const authLimiter = rateLimit({
 // Basic but reliable email format check
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Ensure APP_BASE_URL always has a scheme so email links are valid https:// URLs.
+// If the env var is missing a scheme (e.g. "mobile214.example.com") macOS Mail
+// rewrites the href to its internal x-webdoc:// scheme and the link breaks.
+function getBaseUrl(req) {
+  const raw = (process.env.APP_BASE_URL || '').replace(/\/+$/, '');
+  if (raw) {
+    return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  }
+  return `${req.protocol}://${req.get('host')}`;
+}
+
 // Home
 router.get('/', (req, res) => {
   if (req.session.userId) return res.redirect('/dashboard');
@@ -61,7 +72,7 @@ router.post('/register', authLimiter, async (req, res) => {
       'INSERT INTO users (username, email, password_hash, verification_token, verification_token_expires_at) VALUES ($1, $2, $3, $4, $5)',
       [username, email, hash, token, expiresAt]
     );
-    const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
     await sendVerificationEmail(email, verifyUrl);
     logger.info({ email }, 'User registered — verification email sent');
@@ -187,7 +198,7 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
       'UPDATE users SET reset_token = $1, reset_token_expires_at = $2 WHERE id = $3',
       [token, expiresAt, user.id]
     );
-    const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getBaseUrl(req);
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
     await sendPasswordResetEmail(email, resetUrl);
     logger.info({ userId: user.id }, 'Password reset email sent');
