@@ -56,7 +56,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],  // inline scripts in EJS views
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],  // inline scripts in EJS views
+      scriptSrcAttr: ["'unsafe-inline'"],        // inline event handlers (onclick etc.)
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:'],
       fontSrc: ["'self'"],
