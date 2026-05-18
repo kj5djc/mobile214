@@ -50,6 +50,20 @@ async function initialize() {
     CREATE INDEX IF NOT EXISTS idx_events_user_id        ON events (user_id);
     CREATE INDEX IF NOT EXISTS idx_updates_event_id       ON updates (event_id);
     CREATE INDEX IF NOT EXISTS idx_users_email             ON users (email);
+
+    CREATE TABLE IF NOT EXISTS passkeys (
+      id          TEXT PRIMARY KEY,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      public_key  BYTEA NOT NULL,
+      counter     BIGINT NOT NULL DEFAULT 0,
+      device_type TEXT,
+      backed_up   BOOLEAN DEFAULT FALSE,
+      transports  TEXT[],
+      name        TEXT,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_passkeys_user_id ON passkeys (user_id);
   `);
 
   // Soft-delete columns – safe to run on an existing DB

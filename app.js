@@ -13,6 +13,7 @@ const { attachCurrentUser } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const pdfRoutes = require('./routes/pdf');
+const passkeyRoutes = require('./routes/passkey');
 const logger = require('./logger');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
@@ -22,6 +23,11 @@ const { doubleCsrf } = require('csrf-csrf');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ─── Trust proxy ────────────────────────────────────────────────────────────
+// Required when running behind a reverse proxy (nginx, load balancer, etc.)
+// so that req.ip and rate limiters see the real client IP from X-Forwarded-For.
+app.set('trust proxy', 1);
 
 // ─── View engine ────────────────────────────────────────────────────────────
 app.set('view engine', 'ejs');
@@ -129,6 +135,7 @@ app.use((req, res, next) => {
 app.use('/', authRoutes);
 app.use('/', eventRoutes);
 app.use('/', pdfRoutes);
+app.use('/', passkeyRoutes);
 
 // ─── 404 ────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

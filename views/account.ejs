@@ -1,0 +1,208 @@
+<%- include('partials/head', { title: 'Account – mobile214' }) %>
+<%- include('partials/nav') %>
+
+<main class="max-w-md mx-auto px-4 py-10">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Account</h1>
+
+  <!-- Passkeys section -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-900">Passkeys</h2>
+      <button id="add-passkey-btn" type="button" style="display:none"
+              class="inline-flex items-center gap-1.5 bg-brand-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Add
+      </button>
+    </div>
+    <p class="text-sm text-gray-500 mb-4">
+      Passkeys let you sign in securely without a password using your fingerprint, face, or device PIN.
+    </p>
+
+    <div id="passkey-msg" class="hidden mb-4 text-sm rounded-lg px-4 py-3"></div>
+
+    <noscript>
+      <p class="text-sm text-gray-400">JavaScript required to manage passkeys.</p>
+    </noscript>
+
+    <div id="no-webauthn" class="hidden text-sm text-gray-400">
+      Your browser does not support passkeys.
+    </div>
+
+    <div id="passkey-list">
+      <% if (passkeys.length === 0) { %>
+      <p id="no-passkeys" class="text-sm text-gray-400">No passkeys registered yet.</p>
+      <% } else { %>
+      <ul class="divide-y divide-gray-100">
+        <% passkeys.forEach(function (pk) { %>
+        <li class="py-3 flex items-center justify-between passkey-item" data-id="<%= pk.id %>">
+          <div>
+            <p class="text-sm font-medium text-gray-900"><%= pk.name || 'Passkey' %></p>
+            <p class="text-xs text-gray-400">
+              Added <time data-ts="<%= new Date(pk.created_at).toISOString() %>" data-fmt="date"></time>
+              <% if (pk.device_type === 'multiDevice') { %> · Synced<% } %>
+            </p>
+          </div>
+          <button type="button" onclick="removePasskey(this, '<%= pk.id %>')"
+                  class="text-xs text-red-500 hover:text-red-700 font-medium transition"
+                  data-no-loading="true">Remove</button>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var csrfToken = '<%= csrfToken %>';
+  var addBtn = document.getElementById('add-passkey-btn');
+  var msgEl = document.getElementById('passkey-msg');
+
+  if (!window.PublicKeyCredential) {
+    document.getElementById('no-webauthn').classList.remove('hidden');
+    return;
+  }
+
+  addBtn.style.display = '';
+
+  function b64urlToBuffer(b64url) {
+    var b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    var pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+    var bin = atob(b64 + pad);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes.buffer;
+  }
+
+  function bufferToB64url(buf) {
+    var bytes = new Uint8Array(buf);
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  function showMsg(text, isError) {
+    msgEl.textContent = text;
+    msgEl.className = 'mb-4 text-sm rounded-lg px-4 py-3 '
+      + (isError
+        ? 'bg-red-50 border border-red-200 text-red-700'
+        : 'bg-green-50 border border-green-200 text-green-700');
+    msgEl.classList.remove('hidden');
+  }
+
+  addBtn.addEventListener('click', async function () {
+    msgEl.classList.add('hidden');
+    addBtn.disabled = true;
+    addBtn.textContent = 'Waiting…';
+
+    try {
+      // 1. Get registration options
+      var optRes = await fetch('/passkey/register/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+      });
+      if (!optRes.ok) throw new Error('Failed to get options');
+      var options = await optRes.json();
+
+      // 2. Convert for browser API
+      options.challenge = b64urlToBuffer(options.challenge);
+      options.user.id = b64urlToBuffer(options.user.id);
+      if (options.excludeCredentials) {
+        options.excludeCredentials = options.excludeCredentials.map(function (c) {
+          return Object.assign({}, c, { id: b64urlToBuffer(c.id) });
+        });
+      }
+
+      // 3. Create credential
+      var cred = await navigator.credentials.create({ publicKey: options });
+
+      // 4. Encode response
+      var body = {
+        id: cred.id,
+        rawId: bufferToB64url(cred.rawId),
+        type: cred.type,
+        response: {
+          attestationObject: bufferToB64url(cred.response.attestationObject),
+          clientDataJSON: bufferToB64url(cred.response.clientDataJSON),
+        },
+        clientExtensionResults: cred.getClientExtensionResults(),
+      };
+      if (cred.response.getTransports) {
+        body.response.transports = cred.response.getTransports();
+      }
+      if (cred.authenticatorAttachment) {
+        body.authenticatorAttachment = cred.authenticatorAttachment;
+      }
+
+      // 5. Verify with server
+      var verRes = await fetch('/passkey/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify(body),
+      });
+      var result = await verRes.json();
+
+      if (result.verified) {
+        showMsg('Passkey added successfully!', false);
+        setTimeout(function () { location.reload(); }, 800);
+      } else {
+        showMsg(result.error || 'Registration failed.', true);
+      }
+    } catch (e) {
+      if (e.name !== 'NotAllowedError') {
+        showMsg('Passkey registration failed. Please try again.', true);
+      }
+    } finally {
+      addBtn.disabled = false;
+      addBtn.innerHTML =
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">'
+        + '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>'
+        + '</svg> Add';
+    }
+  });
+
+  window.removePasskey = async function (btn, id) {
+    if (!confirm('Remove this passkey?')) return;
+    msgEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+      var res = await fetch('/passkey/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+        body: JSON.stringify({ passkeyId: id }),
+      });
+      var result = await res.json();
+      if (result.deleted) {
+        var item = btn.closest('.passkey-item');
+        if (item) item.remove();
+        // If no more passkeys, show the empty message
+        var remaining = document.querySelectorAll('.passkey-item');
+        if (remaining.length === 0) {
+          var ul = document.querySelector('#passkey-list ul');
+          if (ul) ul.remove();
+          var p = document.createElement('p');
+          p.id = 'no-passkeys';
+          p.className = 'text-sm text-gray-400';
+          p.textContent = 'No passkeys registered yet.';
+          document.getElementById('passkey-list').appendChild(p);
+        }
+        showMsg('Passkey removed.', false);
+      } else {
+        showMsg(result.error || 'Failed to remove passkey.', true);
+      }
+    } catch (e) {
+      showMsg('Failed to remove passkey.', true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Remove';
+    }
+  };
+}());
+</script>
+
+<%- include('partials/foot') %>
