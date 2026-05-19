@@ -1,7 +1,7 @@
 <%- include('partials/head', { title: 'Dashboard – mobile214' }) %>
 <%- include('partials/nav') %>
 
-<main class="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:max-w-4xl">
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
 
   <!-- Page header -->
   <div class="flex items-center justify-between mb-5">
@@ -36,7 +36,7 @@
     <p class="text-sm mt-1">Tap "New Event" to get started.</p>
   </div>
   <% } else { %>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
     <% events.forEach(event => { %>
     <a href="/events/<%= event.id %>"
        class="block bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:shadow-md hover:border-brand-100 transition group">
