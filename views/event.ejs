@@ -1,182 +1,201 @@
 <%- include('partials/head', { title: event.name + ' – mobile214' }) %>
 <%- include('partials/nav') %>
 
-<main class="max-w-lg mx-auto px-4 py-6">
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
 
-  <!-- Back + header -->
-  <div class="mb-4">
-    <a href="/dashboard" class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium mb-3">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-      </svg>
-      All Events
-    </a>
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2">
-          <h1 class="text-xl font-bold text-gray-900"><%= event.name %></h1>
-          <button type="button"
-                  onclick="openEditModal(this)"
-                  class="text-gray-400 hover:text-brand-500 transition p-1 rounded-lg hover:bg-brand-50 flex-shrink-0"
-                  title="Edit event name"
-                  aria-label="Edit event name">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.415.586H9v-2.414A2 2 0 019.586 12.5z"/>
-            </svg>
-          </button>
-        </div>
-        <% if (event.description) { %>
-        <p class="text-sm text-gray-500 mt-0.5"><%= event.description %></p>
-        <% } %>
-        <p class="text-xs text-gray-400 mt-1">
-          Created <time data-ts="<%= new Date(event.created_at).toISOString() %>" data-fmt="date"></time>
-        </p>
-      </div>
-      <!-- Export ICS-214 PDF -->
-      <a href="/events/<%= event.id %>/export.pdf"
-         class="text-gray-400 hover:text-brand-500 transition p-1.5 rounded-lg hover:bg-brand-50"
-         title="Export ICS-214 PDF"
-         aria-label="Export as ICS-214 PDF">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>
-      </a>
-
-      <!-- Delete event -->
-      <form id="delete-event-form" method="POST" action="/events/<%= event.id %>/delete">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <button type="submit"
-                class="text-gray-400 hover:text-red-500 transition p-1.5 rounded-lg hover:bg-red-50"
-                title="Delete event"
-                aria-label="Delete event">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Error -->
-  <% if (error) { %>
-  <div class="mb-4 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+  <!-- Back link -->
+  <a href="/dashboard" class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
-    <%= error %>
-  </div>
-  <% } %>
+    All Events
+  </a>
 
-  <!-- Add Update form -->
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
-    <h2 class="text-sm font-semibold text-gray-700 mb-3">Add Update</h2>
-    <form method="POST" action="/events/<%= event.id %>/updates" class="space-y-3">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <div class="relative">
-        <textarea id="update-content" name="content" rows="3" maxlength="<%= updateContentMax %>"
-                  required
-                  class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition resize-none pr-16"
-                  placeholder="What's happening? (max <%= updateContentMax %> characters)"
-                  oninput="updateCounter(this)"
-                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').requestSubmit();}"></textarea>
-        <span id="char-counter"
-              aria-live="polite" aria-atomic="true"
-              class="absolute bottom-3 right-3 text-xs text-gray-400 pointer-events-none">
-          0/<%= updateContentMax %>
-        </span>
-      </div>
-      <button type="submit"
-              class="w-full bg-brand-600 text-white font-semibold py-2.5 rounded-xl hover:bg-brand-700 transition text-sm">
-        Post Update
-      </button>
-    </form>
-  </div>
+  <!-- Two-column layout on lg+ -->
+  <div class="lg:flex lg:gap-8 lg:items-start">
 
-  <!-- Updates list -->
-  <div class="mb-2 flex items-center justify-between">
-    <h2 class="text-sm font-semibold text-gray-700">
-      Updates <span class="text-gray-400 font-normal">(<%= totalCount %>)</span>
-    </h2>
-  </div>
+    <!-- Left column: event header + add form -->
+    <div class="lg:w-80 xl:w-96 lg:flex-shrink-0 lg:sticky lg:top-20">
 
-  <% if (totalCount === 0) { %>
-  <div class="text-center py-12 text-gray-400">
-    <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-        d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-    </svg>
-    <p class="text-sm">No updates yet. Add the first one above.</p>
-  </div>
-  <% } else { %>
-  <div class="space-y-3">
-    <% updates.forEach(update => { %>
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
-      <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap"><%= update.content %></p>
-      <div class="flex items-center justify-between mt-3">
-        <time class="text-xs text-gray-400" data-ts="<%= new Date(update.created_at).toISOString() %>" data-fmt="datetime"></time>
-        <div class="flex items-center gap-2">
-          <button type="button"
-                  data-update-id="<%= update.id %>"
-                  data-content="<%= update.content %>"
-                  onclick="openEditUpdate(this.dataset.updateId, this.dataset.content, this)"
-                  class="text-gray-400 hover:text-brand-500 transition"
-                  title="Edit update"
-                  aria-label="Edit update">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.415.586H9v-2.414A2 2 0 019.586 12.5z"/>
-            </svg>
-          </button>
-          <form method="POST" action="/events/<%= event.id %>/updates/<%= update.id %>/delete?page=<%= currentPage %>">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-            <button type="submit"
-                    class="text-gray-400 hover:text-red-400 transition"
-                    title="Delete update"
-                    aria-label="Delete update">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <!-- Event header -->
+      <div class="mb-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl font-bold text-gray-900"><%= event.name %></h1>
+              <button type="button"
+                      onclick="openEditModal(this)"
+                      class="text-gray-400 hover:text-brand-500 transition p-1 rounded-lg hover:bg-brand-50 flex-shrink-0"
+                      title="Edit event name"
+                      aria-label="Edit event name">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.415.586H9v-2.414A2 2 0 019.586 12.5z"/>
+                </svg>
+              </button>
+            </div>
+            <% if (event.description) { %>
+            <p class="text-sm text-gray-500 mt-0.5"><%= event.description %></p>
+            <% } %>
+            <p class="text-xs text-gray-400 mt-1">
+              Created <time data-ts="<%= new Date(event.created_at).toISOString() %>" data-fmt="date"></time>
+            </p>
+          </div>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            <!-- Export ICS-214 PDF -->
+            <a href="/events/<%= event.id %>/export.pdf"
+               class="text-gray-400 hover:text-brand-500 transition p-1.5 rounded-lg hover:bg-brand-50"
+               title="Export ICS-214 PDF"
+               aria-label="Export as ICS-214 PDF">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
-            </button>
-          </form>
+            </a>
+            <!-- Delete event -->
+            <form id="delete-event-form" method="POST" action="/events/<%= event.id %>/delete">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+              <button type="submit"
+                      class="text-gray-400 hover:text-red-500 transition p-1.5 rounded-lg hover:bg-red-50"
+                      title="Delete event"
+                      aria-label="Delete event">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-    <% }) %>
-  </div>
 
-  <% if (totalPages > 1) { %>
-  <div class="flex items-center justify-between mt-6">
-    <% if (currentPage > 1) { %>
-    <a href="/events/<%= event.id %>?page=<%= currentPage - 1 %>"
-       class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-      </svg>
-      Newer
-    </a>
-    <% } else { %>
-    <span></span>
-    <% } %>
-    <span class="text-xs text-gray-400">Page <%= currentPage %> of <%= totalPages %></span>
-    <% if (currentPage < totalPages) { %>
-    <a href="/events/<%= event.id %>?page=<%= currentPage + 1 %>"
-       class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium">
-      Older
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-      </svg>
-    </a>
-    <% } else { %>
-    <span></span>
-    <% } %>
-  </div>
-  <% } %>
+      <!-- Error -->
+      <% if (error) { %>
+      <div class="mb-4 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <%= error %>
+      </div>
+      <% } %>
 
-  <% } %>
+      <!-- Add Update form -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6 lg:mb-0">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3">Add Update</h2>
+        <form method="POST" action="/events/<%= event.id %>/updates" class="space-y-3">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <div class="relative">
+            <textarea id="update-content" name="content" rows="3" maxlength="<%= updateContentMax %>"
+                      required
+                      class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition resize-none pr-16"
+                      placeholder="What's happening? (max <%= updateContentMax %> characters)"
+                      oninput="updateCounter(this)"
+                      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').requestSubmit();}"></textarea>
+            <span id="char-counter"
+                  aria-live="polite" aria-atomic="true"
+                  class="absolute bottom-3 right-3 text-xs text-gray-400 pointer-events-none">
+              0/<%= updateContentMax %>
+            </span>
+          </div>
+          <button type="submit"
+                  class="w-full bg-brand-600 text-white font-semibold py-2.5 rounded-xl hover:bg-brand-700 transition text-sm">
+            Post Update
+          </button>
+        </form>
+      </div>
+
+    </div><!-- /left column -->
+
+    <!-- Right column: updates list -->
+    <div class="lg:flex-1 min-w-0">
+
+      <!-- Updates list header -->
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-700">
+          Updates <span class="text-gray-400 font-normal">(<%= totalCount %>)</span>
+        </h2>
+      </div>
+
+      <% if (totalCount === 0) { %>
+      <div class="text-center py-12 text-gray-400">
+        <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+        </svg>
+        <p class="text-sm">No updates yet. Add the first one above.</p>
+      </div>
+      <% } else { %>
+      <div class="space-y-3">
+        <% updates.forEach(update => { %>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+          <p class="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap"><%= update.content %></p>
+          <div class="flex items-center justify-between mt-3">
+            <time class="text-xs text-gray-400" data-ts="<%= new Date(update.created_at).toISOString() %>" data-fmt="datetime"></time>
+            <div class="flex items-center gap-2">
+              <button type="button"
+                      data-update-id="<%= update.id %>"
+                      data-content="<%= update.content %>"
+                      onclick="openEditUpdate(this.dataset.updateId, this.dataset.content, this)"
+                      class="text-gray-400 hover:text-brand-500 transition"
+                      title="Edit update"
+                      aria-label="Edit update">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.415.586H9v-2.414A2 2 0 019.586 12.5z"/>
+                </svg>
+              </button>
+              <form method="POST" action="/events/<%= event.id %>/updates/<%= update.id %>/delete?page=<%= currentPage %>">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                <button type="submit"
+                        class="text-gray-400 hover:text-red-400 transition"
+                        title="Delete update"
+                        aria-label="Delete update">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+
+      <% if (totalPages > 1) { %>
+      <div class="flex items-center justify-between mt-6">
+        <% if (currentPage > 1) { %>
+        <a href="/events/<%= event.id %>?page=<%= currentPage - 1 %>"
+           class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Newer
+        </a>
+    <% } else { %>
+        <span></span>
+        <% } %>
+        <span class="text-xs text-gray-400">Page <%= currentPage %> of <%= totalPages %></span>
+        <% if (currentPage < totalPages) { %>
+        <a href="/events/<%= event.id %>?page=<%= currentPage + 1 %>"
+           class="inline-flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium">
+          Older
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <% } else { %>
+        <span></span>
+        <% } %>
+      </div>
+      <% } %>
+
+      <% } %>
+
+    </div><!-- /right column -->
+
+  </div><!-- /two-column -->
+
 </main>
 
 <script>
